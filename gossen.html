@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8"><title>Kegelverein – Gossen</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f3f4f6;color:#1f2937}
+header{background:#1e3a5f;color:#fff;padding:12px 20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;flex:1}
+nav button,.btn{background:#fff;color:#1e3a5f;border:0;padding:7px 14px;border-radius:6px;cursor:pointer;font-size:14px}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+nav button.on{background:#f59e0b;color:#000}
+main{padding:20px;max-width:1200px;margin:auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 3px #0002}
+.card b{display:block;font-size:26px;color:#1e3a5f}
+.box{background:#fff;border-radius:10px;padding:16px;margin-bottom:20px;box-shadow:0 1px 3px #0002;overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid #e5e7eb;padding:6px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:#f9fafb;cursor:pointer;position:sticky;top:0}
+td input[type=number]{width:58px}
+td input.note-input{width:100%;min-width:160px;box-sizing:border-box}
+input,select{padding:5px;border:1px solid #cbd5e1;border-radius:5px}
+.bar{display:flex;align-items:center;margin:4px 0;gap:8px}
+.bar span.n{width:110px;text-align:right;font-size:14px}
+.player-link{width:110px;text-align:right;font-size:14px;border:0;background:none;color:#1e3a5f;text-decoration:underline;cursor:pointer;padding:0}
+.bar div{background:#f59e0b;height:20px;border-radius:3px;min-width:2px}
+.bar span.v{font-size:13px}
+.hide{display:none}.open{color:#b91c1c;font-weight:600}.ok{color:#15803d}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.player-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:12px 0}
+.player-options label{display:flex;align-items:center;gap:6px}
+summary{cursor:pointer;font-weight:600}
+@media(max-width:600px){
+ header{display:block;padding:12px}
+ header h1{margin-bottom:10px}
+ nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ nav button{min-width:0;min-height:44px;padding:6px;font-size:13px;overflow-wrap:anywhere}
+ main{padding:12px}
+ .box{padding:12px}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .card{min-width:0;overflow-wrap:anywhere;padding:12px}
+ .card b{font-size:22px}
+ .btn{min-height:44px;max-width:100%}
+ input,select{font-size:16px;max-width:100%;box-sizing:border-box}
+ input[type=checkbox]{width:20px;height:20px;vertical-align:middle}
+ .bar{display:grid;grid-template-columns:minmax(0,85px) minmax(0,1fr) max-content}
+ .bar span.n,.player-link{width:auto;overflow-wrap:anywhere}
+ .bar span.v{font-size:12px}
+}
+</style></head><body>
+<header><h1>🎳 Kegelverein – Gossen-Auswertung</h1>
+<nav><button data-t="dash" class="on">Dashboard</button> <button data-t="tab">Tabelle</button> <button data-t="days">Kegeltage</button> <button data-t="statistics">Statistik</button> <button data-t="eingabe">Abende erfassen</button> <button data-t="spieler">Spieler &amp; Einstellungen</button></nav></header>
+<main>
+<div class="box" id="filter">
+ <div class="row"><label for="jahr">Jahr:</label> <select id="jahr"></select>
+ <label for="dateFrom">Von:</label> <input type="date" id="dateFrom">
+ <label for="dateTo">Bis:</label> <input type="date" id="dateTo">
+ <button class="btn" type="button" id="clearDates" style="background:#e5e7eb">Zeitraum zurücksetzen</button></div>
+ <p>Jahr und Datumsbereich gelten gemeinsam und einschließlich der gewählten Tage. <span id="dateWarning"></span>„Offen“ bedeutet, dass keine Zahlung markiert ist – nicht unbedingt, dass tatsächlich noch Geld fehlt.</p>
+ <p class="open" id="dateError" role="alert"></p>
+ <details>
+  <summary>Spieler filtern und vergleichen (<span id="filterCount"></span>)</summary>
+  <p>Wähle einen oder mehrere Spieler für Dashboard, Tabelle, Kegeltage, Statistik und CSV-Export.</p>
+  <div class="row"><button class="btn" type="button" id="selectAll" style="background:#e5e7eb">Alle auswählen</button>
+  <button class="btn" type="button" id="selectNone" style="background:#e5e7eb">Auswahl leeren</button></div>
+  <div class="player-options" id="playerOptions"></div>
+ </details>
+</div>
+<section id="dash">
+ <div class="cards" id="cards"></div>
+ <div class="box"><h3>Gossen gesamt je Spieler</h3><p>Auf einen Namen klicken für das persönliche Dashboard.</p><div id="bars"></div></div>
+ <div class="box"><h3>Verlauf je Abend (Gossen gesamt)</h3><div id="verlauf"></div></div>
+ <div class="box"><h3>Rekorde &amp; Sprüche</h3><div id="rekorde"></div></div>
+</section>
+<section id="person" class="hide">
+ <div class="box"><button class="btn" type="button" id="personBack" style="background:#e5e7eb">← Zurück zum Dashboard</button>
+  <h2 id="personTitle"></h2>
+  <p>Der gewählte Zeitraum gilt auch hier. Nur ausdrücklich erfasste Teilnahmen werden angezeigt. „Offen“ bedeutet, dass keine Zahlung markiert ist – nicht unbedingt, dass tatsächlich noch Geld fehlt.</p>
+ </div>
+ <div class="cards" id="personCards"></div>
+ <div class="box"><h3>Gossen je Kegeltag</h3><div id="personChart"></div></div>
+ <div class="box"><h3>Alle erfassten Teilnahmen</h3><p>Den Haken für einzelne Zahlungen setzen oder entfernen. Bei 0 Gossen ist nichts fällig. Notizen lassen sich direkt bearbeiten und gelten für den gesamten Kegeltag.</p>
+  <button class="btn" type="button" id="personPayAll" style="background:#1e3a5f;color:#fff">Offene Einträge im Zeitraum als gezahlt markieren</button>
+  <p>Die Sammelaktion gilt nur für diese Person und den oben gewählten Zeitraum.</p><div id="personTable"></div></div>
+</section>
+<section id="tab" class="hide">
+ <div class="box"><h3>Spieler im Vergleich</h3><p>Ø/Abend bezieht sich auf alle Abende im gewählten Zeitraum, auch bei Abwesenheit.</p><table id="sumTab"></table></div>
+ <div class="box"><h3>Alle Abende (Matrix)</h3><p>✓ = als bezahlt markiert. Kein Haken ist kein sicherer Nachweis für eine offene Zahlung.</p><table id="matrix"></table></div>
+ <button class="btn" style="background:#1e3a5f;color:#fff" onclick="exportCSV()">CSV exportieren</button>
+</section>
+<section id="days" class="hide">
+ <div class="box"><h3>Einzelner Kegeltag</h3>
+  <div class="row"><label for="daySelect">Kegeltag:</label> <select id="daySelect"></select></div>
+  <p id="dayNote"></p>
+  <p>Es erscheinen die ausgewählten Personen, die an diesem Tag erfasst wurden.</p>
+  <div id="dayResult"></div>
+ </div>
+</section>
+<section id="statistics" class="hide">
+ <div class="box"><h3>Statistik</h3>
+  <div class="row"><label for="statMetric">Kennzahl:</label>
+   <select id="statMetric">
+    <option value="gossen">Gossen insgesamt</option>
+    <option value="average">Gossen pro Teilnahme</option>
+    <option value="amount">Betrag</option>
+    <option value="paid">Gezahlt</option>
+    <option value="unmarked">Offen</option>
+    <option value="attendance">Teilnahmen</option>
+   </select>
+   <label for="statGroup">Gruppierung:</label>
+   <select id="statGroup"><option value="day">Kegeltag</option><option value="month">Monat</option><option value="year">Jahr</option></select>
+  </div>
+  <p>Teilnahmen zählen nur ausdrücklich erfasste Personen, auch mit 0 Gossen. Der Gesamtdurchschnitt wird über alle erfassten Teilnahmen berechnet. Offen bedeutet, dass keine Zahlung markiert ist.</p>
+  <div id="statChart"></div><table id="statTable"></table>
+ </div>
+</section>
+<section id="eingabe" class="hide">
+ <div class="box"><h3>Neuer Abend</h3>
+  <div class="row">Datum: <input type="date" id="nd"> Ort/Notiz: <input id="nn" placeholder="optional">
+  <button class="btn" style="background:#1e3a5f;color:#fff" onclick="addAbend()">Abend anlegen</button></div>
+  <p style="font-size:13px;color:#555">Für Teilnahmen auch bei 0 Gossen „Teilnahme“ markieren. ✓ = bezahlt.</p></div>
+ <div id="abende"></div>
+</section>
+<section id="spieler" class="hide">
+ <div class="box"><h3>Einstellungen</h3>
+  <div class="row">Preis pro Gosse (€): <input type="number" step="0.05" id="preis" style="width:80px"></div>
+  <h3>Spieler</h3><div class="row"><input id="np" placeholder="Name"><button class="btn" style="background:#1e3a5f;color:#fff" onclick="addP()">Hinzufügen</button></div>
+  <div id="plist"></div>
+  <h3>Sprüche / Rekorde (frei, eine Zeile pro Eintrag)</h3><textarea id="sp" rows="5" style="width:100%"></textarea>
+  <h3>Sicherung</h3><p>Beim Laden ersetzt die Sicherung nach Bestätigung alle Daten in diesem Browser. Sichere gegebenenfalls vorher den aktuellen Stand.</p><div class="row"><button class="btn" style="background:#1e3a5f;color:#fff" onclick="saveJSON()">Daten sichern (JSON)</button>
+  <label class="btn" style="background:#e5e7eb">Daten laden<input type="file" id="fi" accept=".json" class="hide"></label>
+  <button class="btn" style="background:#fee2e2" onclick="if(confirm('Wirklich alles löschen?')){D={preis:.5,spieler:[],abende:[],sprueche:''};save();render()}">Alles löschen</button></div></div>
+</section>
+</main>
+<script>
+const SEED={"preis":0.5,"spieler":["Carola","Tobse","Max","Tim","Lena","Cedric","Patrick","Vroni","Andy","Jonas","Christian","Puschi","Sid","Hannah","Andrea","Verena","Carina","Mascha","Leonie","Vincent","Phillip","Laura","Alina","Wendy","Kevin","Lea","Markus","Mattis","Pasche","Pia"],"abende":[{"id":"pdf00","d":"2021-12-18","note":"","g":{"Carola":{"n":2},"Tobse":{"n":7},"Max":{"n":5},"Tim":{"n":5},"Lena":{"n":1},"Cedric":{"n":1},"Patrick":{"u":true,"n":8},"Vroni":{"n":6},"Andy":{"n":3}}},{"id":"pdf01","d":"2022-01-22","note":"","g":{"Max":{"n":6},"Tobse":{"paid":true,"n":9},"Tim":{"n":20},"Jonas":{"n":9},"Patrick":{"n":13},"Vroni":{"paid":true,"n":6},"Andy":{"n":9}}},{"id":"pdf02","d":"2022-02-19","note":"Karnevalskegeln","g":{"Max":{"n":5},"Carola":{"paid":true,"n":5},"Tobse":{"paid":true,"n":5},"Christian":{"n":5},"Puschi":{"n":6},"Sid":{"n":6},"Jonas":{"n":6},"Patrick":{"n":9},"Cedric":{"n":4},"Hannah":{"u":true,"n":9},"Vroni":{"paid":true,"n":7},"Andy":{"n":7}}},{"id":"pdf03","d":"2022-04-02","note":"Datum nicht notiert (Fruehjahr 2022)","g":{"Jonas":{"u":true,"n":16},"Patrick":{"u":true,"n":11},"Max":{"n":7},"Andrea":{"u":true,"n":8},"Verena":{"u":true,"n":12},"Carola":{"n":7},"Tobse":{"n":5},"Tim":{"u":true,"n":15}}},{"id":"pdf04","d":"2022-08-06","note":"","g":{"Verena":{"n":7},"Hannah":{"n":7},"Jonas":{"n":7},"Andy":{"n":8},"Max":{"n":11}}},{"id":"pdf05","d":"2022-10-01","note":"JHV mit Wahlen","g":{"Max":{"u":true,"n":6},"Tobse":{"u":true,"n":5},"Carina":{"n":2},"Cedric":{"paid":true,"n":5},"Puschi":{"n":2},"Mascha":{"n":1},"Vroni":{"n":4},"Andy":{"n":5},"Patrick":{"u":true,"n":9},"Jonas":{"u":true,"n":3}}},{"id":"pdf06","d":"2022-11-26","note":"Kegelkoenig: Tobse","g":{"Vroni":{"n":3},"Hannah":{"n":4},"Carola":{"n":5},"Tobse":{"u":true,"n":6},"Patrick":{"n":8},"Jonas":{"n":8}}},{"id":"pdf07","d":"2023-01-21","note":"Koenig: Tim","g":{"Tobse":{"u":true,"n":8},"Carola":{"n":5},"Jonas":{"u":true,"n":10},"Tim":{"n":8},"Cedric":{"n":8},"Hannah":{"n":2},"Vroni":{"n":0},"Christian":{"u":true,"n":14},"Andy":{"u":true,"n":8},"Max":{"n":2},"Patrick":{"u":true,"n":13}}},{"id":"pdf08","d":"2023-03-18","note":"","g":{"Lena":{"n":0},"Verena":{"n":3},"Tim":{"u":true,"n":3},"Patrick":{"n":5},"Jonas":{"u":true,"n":6},"Cedric":{"n":2},"Max":{"u":true,"n":6}}},{"id":"pdf09","d":"2023-04-15","note":"","g":{"Andrea":{"u":true,"n":6},"Carina":{"n":1},"Max":{"u":true,"n":5},"Cedric":{"n":6},"Tim":{"n":2},"Hannah":{"n":1},"Verena":{"u":true,"n":3},"Leonie":{"n":2},"Patrick":{"n":3},"Jonas":{"u":true,"n":10}}},{"id":"pdf10","d":"2023-06-10","note":"","g":{"Jonas":{"n":8},"Carola":{"n":4},"Cedric":{"n":3},"Hannah":{"n":6},"Leonie":{"n":2},"Patrick":{"n":9},"Tim":{"n":9},"Tobse":{"n":4}}},{"id":"pdf11","d":"2023-07-08","note":"","g":{"Tim":{"n":4},"Max":{"n":7},"Jonas":{"n":8},"Tobse":{"n":2},"Verena":{"n":3},"Andy":{"n":4}}},{"id":"pdf12","d":"2023-08-05","note":"","g":{"Max":{"n":9},"Andy":{"n":9},"Tobse":{"n":7},"Carola":{"n":7},"Leonie":{"n":4},"Patrick":{"n":9},"Cedric":{"n":10},"Lena":{"n":8}}},{"id":"pdf13","d":"2023-09-02","note":"","g":{"Tim":{"n":7},"Carola":{"n":6},"Tobse":{"u":true,"n":4},"Cedric":{"n":8},"Lena":{"n":8},"Jonas":{"n":15}}},{"id":"pdf14","d":"2023-10-28","note":"JHV","g":{"Max":{"n":2},"Vincent":{"n":2},"Leonie":{"n":1},"Patrick":{"n":3},"Phillip":{"n":3},"Tim":{"n":2},"Carola":{"n":1},"Tobse":{"n":5},"Cedric":{"n":2},"Lena":{"n":0},"Jonas":{"n":5},"Laura":{"u":true,"n":3}}},{"id":"pdf15","d":"2023-11-25","note":"Kegelkoenig: Alina","g":{"Tobse":{"n":4},"Carola":{"n":5},"Max":{"n":3},"Leonie":{"n":4},"Alina":{"u":true,"n":7},"Wendy":{"n":4},"Patrick":{"u":true,"n":13},"Jonas":{"u":true,"n":2},"Christian":{"n":2},"Kevin":{"u":true,"n":9},"Verena":{"n":1},"Andy":{"n":3}}},{"id":"pdf16","d":"2024-01-20","note":"","g":{"Carola":{"n":6},"Tobse":{"n":6},"Andy":{"u":true,"n":3},"Max":{"u":true,"n":5},"Kevin":{"n":10},"Cedric":{"u":true,"n":4},"Jonas":{"n":11},"Patrick":{"u":true,"n":13}}},{"id":"pdf17","d":"2024-02-17","note":"","g":{"Tobse":{"n":5},"Carola":{"n":5},"Leonie":{"n":6},"Cedric":{"u":true,"n":15},"Christian":{"n":3},"Patrick":{"n":10},"Max":{"n":7},"Jonas":{"n":7},"Kevin":{"n":5},"Lea":{"n":6}}},{"id":"pdf18","d":"2024-03-16","note":"","g":{"Patrick":{"n":6},"Tobse":{"u":true,"n":7},"Carola":{"n":1},"Jonas":{"n":6},"Lea":{"n":5},"Kevin":{"n":0},"Hannah":{"n":3},"Verena":{"u":true,"n":5},"Andy":{"n":2},"Max":{"n":4},"Cedric":{"u":true,"n":5}}},{"id":"pdf19","d":"2024-04-13","note":"","g":{"Carola":{"n":6},"Tobse":{"n":8},"Jonas":{"n":10},"Tim":{"n":9},"Vroni":{"n":5},"Andy":{"n":4}}},{"id":"pdf20","d":"2024-05-11","note":"Name 'Markus' unsicher gelesen","g":{"Tobse":{"n":8},"Patrick":{"n":6},"Jonas":{"n":5},"Lea":{"n":3},"Markus":{"u":true,"n":12},"Cedric":{"n":12},"Verena":{"n":4},"Max":{"n":3},"Andy":{"n":0},"Leonie":{"n":2},"Kevin":{"n":7}}},{"id":"pdf21","d":"2024-07-06","note":"","g":{"Tobse":{"n":4},"Patrick":{"n":9},"Christian":{"n":6},"Hannah":{"u":true,"n":4},"Verena":{"n":3},"Leonie":{"n":2},"Tim":{"n":4},"Lea":{"n":2},"Jonas":{"n":8},"Puschi":{"n":1}}},{"id":"pdf22","d":"2024-08-03","note":"Koenigin: Andrea | Max kegelt 1x die 9","g":{"Lea":{"n":2},"Hannah":{"n":10},"Kevin":{"n":4},"Max":{"n":5},"Verena":{"n":2},"Andrea":{"n":7},"Christian":{"u":true,"n":10}}},{"id":"pdf23","d":"2024-09-28","note":"","g":{"Tobse":{"n":6},"Carola":{"n":1},"Tim":{"n":8},"Verena":{"n":2},"Jonas":{"n":5},"Max":{"n":2},"Andy":{"n":7},"Lea":{"n":3}}},{"id":"pdf24","d":"2024-10-26","note":"","g":{"Tobse":{"n":1},"Carola":{"n":1},"Patrick":{"n":5},"Cedric":{"n":2},"Leonie":{"n":0},"Max":{"n":2},"Kevin":{"n":2},"Jonas":{"n":3},"Mattis":{"n":4},"Markus":{"n":4}}},{"id":"pdf25","d":"2024-11-23","note":"","g":{"Tobse":{"u":true,"n":12},"Carola":{"n":2},"Patrick":{"n":9},"Tim":{"u":true,"n":13},"Jonas":{"n":11},"Hannah":{"n":3},"Leonie":{"n":4}}},{"id":"pdf26","d":"2024-12-21","note":"","g":{"Tobse":{"n":3},"Carola":{"n":1},"Kevin":{"n":5},"Markus":{"u":true,"n":10},"Cedric":{"n":1},"Lena":{"n":0},"Verena":{"n":4},"Hannah":{"n":2},"Andy":{"n":0},"Max":{"n":3},"Leonie":{"n":1},"Patrick":{"u":true,"n":9},"Jonas":{"n":3},"Tim":{"n":3}}},{"id":"pdf27","d":"2025-01-18","note":"","g":{"Carina":{"n":4},"Tobse":{"n":6},"Kevin":{"n":2},"Tim":{"n":6},"Jonas":{"u":true,"n":5},"Hannah":{"n":3},"Leonie":{"n":5},"Patrick":{"u":true,"n":5}}},{"id":"pdf28","d":"2025-02-15","note":"Seite schwer lesbar","g":{"Carola":{"n":8},"Tobse":{"u":true,"n":10},"Kevin":{"u":true,"n":5},"Jonas":{"u":true,"n":16},"Patrick":{"u":true,"n":12},"Cedric":{"u":true,"n":13},"Leonie":{"u":true,"n":7}}},{"id":"pdf29","d":"2025-03-15","note":"","g":{"Tobse":{"n":5},"Tim":{"n":3},"Patrick":{"u":true,"n":4},"Leonie":{"n":2},"Verena":{"n":3},"Hannah":{"n":4},"Jonas":{"n":10}}},{"id":"pdf30","d":"2025-04-12","note":"","g":{"Carola":{"n":1},"Tobse":{"u":true,"n":9},"Tim":{"u":true,"n":7},"Kevin":{"n":2},"Jonas":{"u":true,"n":8},"Max":{"u":true,"n":8},"Hannah":{"n":1},"Vroni":{"n":1},"Andrea":{"n":0},"Leonie":{"n":3},"Patrick":{"u":true,"n":6}}},{"id":"pdf31","d":"2025-05-10","note":"Seite schwer lesbar","g":{"Tobse":{"u":true,"n":15},"Carola":{"u":true,"n":5},"Jonas":{"u":true,"n":17},"Patrick":{"u":true,"n":15},"Vroni":{"u":true,"n":2},"Cedric":{"u":true,"n":17}}},{"id":"pdf32","d":"2025-08-30","note":"","g":{"Tobse":{"n":2},"Carola":{"n":2},"Hannah":{"n":1},"Verena":{"n":3},"Markus":{"u":true,"n":3},"Max":{"n":1},"Jonas":{"u":true,"n":5},"Andrea":{"u":true,"n":3}}},{"id":"pdf33","d":"2025-10-25","note":"","g":{"Tobse":{"n":4},"Carola":{"n":1},"Tim":{"n":3},"Markus":{"n":0},"Jonas":{"n":4},"Patrick":{"n":4},"Hannah":{"n":1},"Verena":{"n":3},"Kevin":{"n":1}}},{"id":"pdf34","d":"2025-12-20","note":"","g":{"Tobse":{"u":true,"n":12},"Carina":{"n":3},"Jonas":{"u":true,"n":8},"Patrick":{"u":true,"n":8},"Verena":{"u":true,"n":7}}},{"id":"pdf35","d":"2026-01-17","note":"","g":{"Tobse":{"n":5},"Carola":{"n":2},"Max":{"n":4},"Cedric":{"n":12},"Patrick":{"n":12},"Kevin":{"n":3},"Christian":{"n":2},"Jonas":{"n":13},"Verena":{"u":true,"n":4},"Andrea":{"n":5}}},{"id":"pdf36","d":"2026-03-14","note":"","g":{"Carola":{"n":6},"Tobse":{"u":true,"n":10},"Kevin":{"n":3},"Cedric":{"n":2},"Puschi":{"n":4},"Pasche":{"n":8},"Verena":{"u":true,"n":5},"Hannah":{"n":4},"Patrick":{"n":11}}},{"id":"pdf37","d":"2026-04-11","note":"Seite schwer lesbar","g":{"Tobse":{"u":true,"n":14},"Tim":{"u":true,"n":13},"Cedric":{"u":true,"n":11},"Patrick":{"u":true,"n":16},"Leonie":{"n":3},"Jonas":{"u":true,"n":13},"Kevin":{"u":true,"n":8}}},{"id":"pdf38","d":"2026-05-09","note":"Seite schwer lesbar","g":{"Patrick":{"u":true,"n":16},"Tim":{"u":true,"n":10},"Verena":{"u":true,"n":6},"Tobse":{"u":true,"n":9},"Cedric":{"u":true,"n":8},"Jonas":{"u":true,"n":8},"Kevin":{"n":6}}},{"id":"pdf39","d":"2026-07-04","note":"","g":{"Tobse":{"n":3},"Carola":{"n":4},"Max":{"n":3},"Andrea":{"n":2},"Hannah":{"n":0},"Verena":{"n":1},"Tim":{"n":1},"Kevin":{"n":1},"Cedric":{"n":3},"Patrick":{"n":6}}},{"id":"pdf40","d":"2026-08-29","note":"","g":{"Tobse":{"n":9},"Tim":{"n":7},"Cedric":{"n":8},"Hannah":{"n":0},"Verena":{"n":3},"Patrick":{"u":true,"n":13}}},{"id":"pdf41","d":"2026-10-24","note":"Koenigin: Verena | Patrick ohne Gossen","g":{"Max":{"n":2},"Verena":{"n":6},"Cedric":{"n":7},"Kevin":{"n":1},"Pia":{"u":true,"n":5},"Jonas":{"n":4},"Patrick":{"n":0}}}],"sprueche":"18.12.2021 - Tim: 'Spuck mal drauf, vielleicht hast du den gruenen Gaumen'\n18.12.2021 - Tobias: 'Wir sind alle elaborierte Leute'\n18.12.2021 - Patrick: 'Ich komm nicht aus dem Labor'\n22.01.2022 - Verena (liest Gericht aus der Karte vor): 'Ist das wirklich Kraeuterfischkaese?'\n22.01.2022 - Patrick: 'Ich haette gerne alle 15 Minuten ein Bier ... bis ich sage schneller.'\n06.08.2022 - Rekord: Erstes Kegeln, bei dem mehr Kegelschwestern als -brueder anwesend sind\n26.11.2022 - Kegelkoenig: Tobse\n21.01.2023 - Koenig: Tim\n18.03.2023 - Anm. zum 18.02.: Da war Kegeln, aber auch BroKazu. Es war ein grosser Spass.\n25.11.2023 - Kegelkoenig: Alina\n03.08.2024 - Koenigin: Andrea | Max kegelt 1x die 9\n24.10.2026 - 'Der Burger ist Lowcarb! Ne, der ist mit Reibekuchen.'\n24.10.2026 - Verena ist Koenigin | Patrick ist ohne Gossen\n24.10.2026 - 'Man(n) ich will nicht Kegelkoenig werden' - Verena"};
+let D=JSON.parse(localStorage.getItem('kegel')||'null');
+if(!D||!Array.isArray(D.abende))D=SEED;
+let selectedPlayers=new Set(D.spieler);
+let renderedPlayers='';
+let selectedPerson=null;
+const $=id=>document.getElementById(id),eur=n=>n.toFixed(2).replace('.',',')+' €';
+const save=()=>localStorage.setItem('kegel',JSON.stringify(D));
+function showView(view){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===(view==='person'?'dash':view)));['dash','person','tab','days','statistics','eingabe','spieler'].forEach(t=>$(t).classList.toggle('hide',t!==view));$('filter').classList.toggle('hide',!['dash','person','tab','days','statistics'].includes(view))}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>showView(b.dataset.t));
+const g=(a,p)=>(a.g[p]||{}).n||0;
+const attended=(a,p)=>Object.prototype.hasOwnProperty.call(a.g,p);
+const escapeText=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dateLabel=date=>date.split('-').reverse().join('.');
+const filteredPlayers=()=>D.spieler.filter(p=>selectedPlayers.has(p));
+function abendeJahr(){const j=$('jahr').value,from=$('dateFrom').value,to=$('dateTo').value;if(from&&to&&from>to)return [];return D.abende.filter(a=>(j=='alle'||a.d.slice(0,4)==j)&&(!from||a.d>=from)&&(!to||a.d<=to)).sort((a,b)=>a.d.localeCompare(b.d))}
+function stats(){const A=abendeJahr();return filteredPlayers().map(p=>{let n=0,bez=0,best=0,bd='';A.forEach(a=>{const v=g(a,p);n+=v;if((a.g[p]||{}).paid)bez+=v;if(v>best){best=v;bd=a.d}});return{p,n,bez,best,bd,cnt:A.length?n/A.length:0,schuld:(n-bez)*D.preis}})}
+function renderDays(A){
+ const select=$('daySelect'),previous=select.value,days=[...A].reverse();
+ select.replaceChildren();
+ days.forEach(a=>{const option=document.createElement('option');option.value=a.id;option.textContent=dateLabel(a.d)+((a.note||'').includes('Datum nicht notiert')?' (Datum unsicher)':'');select.append(option)});
+ if(days.some(a=>a.id===previous))select.value=previous;
+ const a=days.find(day=>day.id===select.value);
+ $('dayNote').textContent=a&&a.note?'Notiz: '+a.note:'';
+ if(!a){$('dayResult').textContent='Kein Kegeltag im gewählten Zeitraum.';return}
+ const players=filteredPlayers().filter(p=>attended(a,p));
+ if(!players.length){$('dayResult').textContent='Keine ausgewählten Personen für diesen Kegeltag erfasst.';return}
+ const total=players.reduce((sum,p)=>sum+g(a,p),0);
+ $('dayResult').innerHTML='<table><tr><th>Spieler</th><th>Gossen</th><th>Betrag</th><th>Zahlung</th></tr>'+players.map(p=>{const c=a.g[p],n=g(a,p);return `<tr><td>${escapeText(p)}</td><td>${n}</td><td>${eur(n*D.preis)}</td><td>${c.paid?'Gezahlt':n?'Offen':'Gezahlt (0 € fällig)'}</td></tr>`}).join('')+`<tr><th>Summe</th><th>${total}</th><th>${eur(total*D.preis)}</th><th></th></tr></table>`;
+}
+function statValue(entries,metric){
+ const count=entries.length,total=entries.reduce((sum,c)=>sum+(c.n||0),0),paid=entries.reduce((sum,c)=>sum+(c.paid?(c.n||0):0),0);
+ if(metric==='average')return count?total/count:null;
+ if(metric==='attendance')return count;
+ if(metric==='amount')return total*D.preis;
+ if(metric==='paid')return paid*D.preis;
+ if(metric==='unmarked')return (total-paid)*D.preis;
+ return total;
+}
+function statFormat(value,metric){
+ if(value===null)return '–';
+ if(['amount','paid','unmarked'].includes(metric))return eur(value);
+ return metric==='average'?value.toFixed(2).replace('.',','):String(value);
+}
+function renderStatistics(A){
+ const players=filteredPlayers(),metric=$('statMetric').value,group=$('statGroup').value,groups=new Map();
+ A.forEach(a=>{const key=group==='year'?a.d.slice(0,4):group==='month'?a.d.slice(0,7):a.d;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(a)});
+ if(!players.length||!groups.size){$('statChart').textContent=!players.length?'Bitte Spieler im Filter auswählen.':'Keine Kegeltage im gewählten Zeitraum.';$('statTable').innerHTML='';return}
+ const rows=[...groups].map(([key,days])=>{const label=group==='day'?dateLabel(key):group==='month'?key.slice(5,7)+'.'+key.slice(0,4):key;
+  const entries=players.map(p=>days.filter(a=>attended(a,p)).map(a=>a.g[p]));
+  return {label,entries,total:statValue(entries.flat(),metric)};
+ });
+ const max=Math.max(1,...rows.map(row=>row.total||0));
+ $('statChart').innerHTML=rows.map(row=>`<div class="bar"><span class="n">${escapeText(row.label)}</span><div style="width:${(row.total||0)/max*70}%;background:#1e3a5f"></div><span class="v">${statFormat(row.total,metric)}</span></div>`).join('');
+ $('statTable').innerHTML='<tr><th>Zeitraum</th>'+players.map(p=>`<th>${escapeText(p)}</th>`).join('')+'<th>Gesamt</th></tr>'+rows.map(row=>`<tr><td>${escapeText(row.label)}</td>${row.entries.map(entries=>`<td>${entries.length?statFormat(statValue(entries,metric),metric):'–'}</td>`).join('')}<td><b>${statFormat(row.total,metric)}</b></td></tr>`).join('');
+}
+function renderPerson(A){
+ if(!selectedPerson||!D.spieler.includes(selectedPerson)){$('personTitle').textContent='Spieler nicht mehr vorhanden';$('personCards').replaceChildren();$('personChart').textContent='';$('personTable').textContent='';$('personPayAll').disabled=true;return}
+ $('personTitle').textContent='Persönliches Dashboard: '+selectedPerson;
+ const days=A.filter(a=>attended(a,selectedPerson)),entries=days.map(a=>a.g[selectedPerson]);
+ const total=statValue(entries,'gossen'),paid=statValue(entries,'paid'),unmarked=statValue(entries,'unmarked'),average=statValue(entries,'average'),max=Math.max(1,...days.map(a=>g(a,selectedPerson)));
+ $('personPayAll').disabled=!days.some(a=>g(a,selectedPerson)>0&&!a.g[selectedPerson].paid);
+ $('personCards').innerHTML=[['Teilnahmen',days.length],['Gossen',total],['Ø pro Teilnahme',statFormat(average,'average')],['Betrag gesamt',eur(total*D.preis)],['Gezahlt',eur(paid)],['Offen',eur(unmarked)]].map(c=>`<div class="card">${c[0]}<b>${c[1]}</b></div>`).join('');
+ $('personChart').innerHTML=days.map(a=>`<div class="bar"><span class="n">${escapeText(dateLabel(a.d))}</span><div style="width:${g(a,selectedPerson)/max*70}%;background:#1e3a5f"></div><span class="v">${g(a,selectedPerson)}</span></div>`).join('')||'Keine Teilnahme im gewählten Zeitraum erfasst.';
+ $('personTable').innerHTML=days.length?'<table><tr><th>Datum</th><th>Gossen</th><th>Betrag</th><th>Zahlung</th><th>Notiz</th></tr>'+[...days].reverse().map(a=>{const c=a.g[selectedPerson],n=g(a,selectedPerson);return `<tr><td>${escapeText(dateLabel(a.d))}</td><td>${n}</td><td>${eur(n*D.preis)}</td><td>${n?`<label class="${c.paid?'ok':'open'}"><input type="checkbox" data-day="${escapeText(a.id)}" ${c.paid?'checked':''} aria-label="Gezahlt am ${escapeText(dateLabel(a.d))}"> ${c.paid?'Gezahlt':'Offen'}</label>`:'Gezahlt (0 € fällig)'}</td><td><input class="note-input" type="text" data-note-day="${escapeText(a.id)}" value="${escapeText(a.note||'')}" placeholder="Notiz hinzufügen" aria-label="Notiz am ${escapeText(dateLabel(a.d))}"></td></tr>`}).join('')+'</table>':'Keine Teilnahme im gewählten Zeitraum erfasst.';
+}
+function render(){
+ const jahre=[...new Set(D.abende.map(a=>a.d.slice(0,4)))].sort().reverse();const cur=$('jahr').value||'alle';
+ $('jahr').innerHTML='<option value="alle">Alle</option>'+jahre.map(j=>`<option>${j}</option>`).join('');$('jahr').value=jahre.includes(cur)||cur=='alle'?cur:'alle';
+ $('filterCount').textContent=filteredPlayers().length+' von '+D.spieler.length;
+ const playerNames=JSON.stringify(D.spieler);
+ if(playerNames!==renderedPlayers){$('playerOptions').replaceChildren();D.spieler.forEach(p=>{const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.onchange=()=>{if(input.checked)selectedPlayers.add(p);else selectedPlayers.delete(p);render()};label.append(input,document.createTextNode(p));$('playerOptions').append(label)});renderedPlayers=playerNames}
+ $('playerOptions').querySelectorAll('input').forEach((input,i)=>{input.checked=selectedPlayers.has(D.spieler[i])});
+ $('dateError').textContent=$('dateFrom').value&&$('dateTo').value&&$('dateFrom').value>$('dateTo').value?'Das Startdatum muss vor oder gleich dem Enddatum liegen.':'';
+ $('dateWarning').textContent=D.abende.some(a=>(a.note||'').includes('Datum nicht notiert'))?'Ein Datum aus dem Heft wurde geschätzt und kann deshalb im falschen Zeitraum erscheinen. ':'';
+ const S=stats(),A=abendeJahr(),tot=S.reduce((s,x)=>s+x.n,0),max=Math.max(1,...S.map(x=>x.n));
+ const top=[...S].sort((a,b)=>b.n-a.n)[0],offen=S.reduce((s,x)=>s+x.schuld,0);
+ $('cards').innerHTML=[['Abende im Zeitraum',A.length],['Gossen gesamt',tot],['Kasse gesamt',eur(tot*D.preis)],['Offen',eur(offen)],['Gossen-König',top&&top.n?top.p+' ('+top.n+')':'–']].map(c=>`<div class="card">${c[0]}<b>${c[1]}</b></div>`).join('');
+ $('bars').innerHTML=[...S].sort((a,b)=>b.n-a.n).map(x=>`<div class="bar"><button type="button" class="player-link" data-player="${escapeText(x.p)}">${escapeText(x.p)}</button><div style="width:${x.n/max*70}%"></div><span class="v">${x.n} (${eur(x.n*D.preis)})</span></div>`).join('')||'Bitte Spieler im Filter auswählen.';
+ const sums=A.map(a=>filteredPlayers().reduce((s,p)=>s+g(a,p),0)),mx=Math.max(1,...sums);
+ $('verlauf').innerHTML=A.map((a,i)=>`<div class="bar"><span class="n">${a.d.split('-').reverse().join('.')}</span><div style="width:${sums[i]/mx*70}%;background:#1e3a5f"></div><span class="v">${sums[i]}</span></div>`).join('');
+ let rek='';if(A.length&&S.length&&tot>0){const b=S.filter(x=>x.best).sort((a,b)=>b.best-a.best)[0];if(b)rek+=`<p>🏆 Meiste Gossen an einem Abend: <b>${b.p}</b> mit ${b.best} (${b.bd.split('-').reverse().join('.')})</p>`;const mi=sums.indexOf(Math.max(...sums));rek+=`<p>📈 Teuerster Abend: ${A[mi].d.split('-').reverse().join('.')} mit ${sums[mi]} Gossen (${eur(sums[mi]*D.preis)})</p>`}
+ $('rekorde').innerHTML=rek+(D.sprueche||'').split('\n').filter(x=>x.trim()).map(x=>`<p>💬 ${x}</p>`).join('');
+ $('sumTab').innerHTML='<tr><th>Spieler</th><th>Gossen</th><th>Ø/Abend</th><th>Meiste/Abend</th><th>Betrag</th><th>Gezahlt</th><th>Offen</th></tr>'+S.map(x=>`<tr><td>${x.p}</td><td>${x.n}</td><td>${x.cnt.toFixed(1)}</td><td>${x.best}</td><td>${eur(x.n*D.preis)}</td><td>${eur(x.bez*D.preis)}</td><td class="${x.schuld>0?'open':'ok'}">${eur(x.schuld)}</td></tr>`).join('')+`<tr><th>Summe</th><th>${tot}</th><th></th><th></th><th>${eur(tot*D.preis)}</th><th>${eur(S.reduce((s,x)=>s+x.bez*D.preis,0))}</th><th>${eur(offen)}</th></tr>`;
+ $('matrix').innerHTML='<tr><th>Spieler</th>'+A.map(a=>`<th>${a.d.slice(8)}.${a.d.slice(5,7)}.</th>`).join('')+'<th>Σ</th></tr>'+filteredPlayers().map(p=>`<tr><td>${p}</td>${A.map(a=>{const c=a.g[p]||{};return`<td>${c.n||0}${c.paid?' ✓':''}</td>`}).join('')}<td><b>${A.reduce((s,a)=>s+g(a,p),0)}</b></td></tr>`).join('');
+ renderDays(A);renderStatistics(A);renderPerson(A);
+ $('abende').innerHTML=[...D.abende].sort((a,b)=>b.d.localeCompare(a.d)).map(a=>`<div class="box"><div class="row"><b>${a.d.split('-').reverse().join('.')}</b> ${escapeText(a.note||'')} <button class="btn" style="background:#fee2e2" onclick="delA('${a.id}')">Abend löschen</button></div><table><tr><th>Spieler</th><th>Teilnahme</th><th>Gossen</th><th>Bezahlt</th></tr>${D.spieler.map(p=>{const c=a.g[p]||{};return`<tr><td>${p}</td><td><input type="checkbox" ${attended(a,p)?'checked':''} onchange="setAttendance('${a.id}','${p}',this.checked)"></td><td><input type="number" min="0" value="${c.n||0}" onchange="setC('${a.id}','${p}','n',+this.value)"></td><td><input type="checkbox" ${c.paid?'checked':''} onchange="setC('${a.id}','${p}','paid',this.checked)"></td></tr>`}).join('')}</table></div>`).join('');
+ $('preis').value=D.preis;$('sp').value=D.sprueche||'';
+ $('plist').innerHTML=D.spieler.map(p=>`<span class="card" style="display:inline-block;margin:3px">${p} <a href="#" onclick="delP('${p}');return false">✖</a></span>`).join('');
+}
+function setC(id,p,k,v){const a=D.abende.find(x=>x.id==id);(a.g[p]=a.g[p]||{n:0})[k]=v;save();render()}
+function setAttendance(id,p,present){const a=D.abende.find(x=>x.id==id);if(present){a.g[p]=a.g[p]||{n:0}}else if(attended(a,p)){const c=a.g[p];if((c.n||c.paid||c.u)&&!confirm('Teilnahme und zugehörige Gossen- und Zahlungsangaben entfernen?')){render();return}delete a.g[p]}save();render()}
+function addAbend(){if(!$('nd').value)return alert('Datum wählen');D.abende.push({id:Date.now()+'',d:$('nd').value,note:$('nn').value,g:{}});save();render()}
+function delA(id){if(confirm('Abend löschen?')){D.abende=D.abende.filter(a=>a.id!=id);save();render()}}
+function addP(){const n=$('np').value.trim();if(n&&!D.spieler.includes(n)){D.spieler.push(n);selectedPlayers.add(n);$('np').value='';save();render()}}
+function delP(p){if(confirm(p+' entfernen?')){D.spieler=D.spieler.filter(x=>x!=p);selectedPlayers.delete(p);save();render()}}
+$('selectAll').onclick=()=>{selectedPlayers=new Set(D.spieler);render()};
+$('selectNone').onclick=()=>{selectedPlayers.clear();render()};
+$('bars').onclick=e=>{const button=e.target.closest('button[data-player]');if(!button)return;selectedPerson=button.dataset.player;renderPerson(abendeJahr());showView('person')};
+$('personBack').onclick=()=>showView('dash');
+$('personTable').onchange=e=>{const input=e.target;if(input.matches('input[data-day]'))setC(input.dataset.day,selectedPerson,'paid',input.checked);else if(input.matches('input[data-note-day]')){const a=D.abende.find(day=>day.id==input.dataset.noteDay);a.note=input.value;save();render()}};
+$('personTable').onkeydown=e=>{if(e.key==='Enter'&&e.target.matches('input[data-note-day]'))e.target.blur()};
+$('personPayAll').onclick=()=>{const days=abendeJahr().filter(a=>attended(a,selectedPerson)&&g(a,selectedPerson)>0&&!a.g[selectedPerson].paid);if(!days.length)return;const amount=days.reduce((sum,a)=>sum+g(a,selectedPerson)*D.preis,0),label=days.length===1?'offenen Eintrag':'offene Einträge';if(!confirm(`${days.length} ${label} von ${selectedPerson} über ${eur(amount)} im gewählten Zeitraum als gezahlt markieren?`))return;days.forEach(a=>{a.g[selectedPerson].paid=true});save();render()};
+$('preis').onchange=e=>{D.preis=+e.target.value||0;save();render()};$('sp').onchange=e=>{D.sprueche=e.target.value;save();render()};$('jahr').onchange=render;
+$('dateFrom').onchange=render;$('dateTo').onchange=render;$('clearDates').onclick=()=>{$('dateFrom').value='';$('dateTo').value='';$('jahr').value='alle';render()};
+$('daySelect').onchange=()=>renderDays(abendeJahr());
+$('statMetric').onchange=()=>renderStatistics(abendeJahr());$('statGroup').onchange=()=>renderStatistics(abendeJahr());
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+function saveJSON(){dl('kegel.json',JSON.stringify(D),'application/json')}
+function validateBackup(data){
+ const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+ if(!object(data)||!Array.isArray(data.spieler)||!Array.isArray(data.abende)||typeof data.preis!=='number'||!Number.isFinite(data.preis)||data.preis<0)return 'Spieler, Kegeltage oder Preis fehlen oder sind ungültig.';
+ if(data.spieler.some(p=>typeof p!=='string'||!p.trim())||new Set(data.spieler).size!==data.spieler.length)return 'Die Spielerliste enthält ungültige oder doppelte Namen.';
+ if(data.sprueche!==undefined&&typeof data.sprueche!=='string')return 'Die Sprüche sind ungültig.';
+ const ids=new Set();
+ for(const a of data.abende){
+  if(!object(a)||typeof a.id!=='string'||!a.id||ids.has(a.id)||typeof a.d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(a.d)||!Number.isFinite(Date.parse(a.d))||new Date(a.d).toISOString().slice(0,10)!==a.d||!object(a.g)||(a.note!==undefined&&typeof a.note!=='string'))return 'Ein Kegeltag hat eine ungültige ID, ein ungültiges Datum oder ungültige Angaben.';
+  ids.add(a.id);
+  for(const entry of Object.values(a.g))if(!object(entry)||!Number.isSafeInteger(entry.n)||entry.n<0||(entry.paid!==undefined&&typeof entry.paid!=='boolean')||(entry.u!==undefined&&typeof entry.u!=='boolean'))return 'Ein Gossen- oder Zahlungsstand ist ungültig.';
+ }
+ return '';
+}
+$('fi').onchange=e=>{
+ const file=e.target.files[0];e.target.value='';if(!file)return;
+ const reader=new FileReader();
+ reader.onerror=()=>alert('Die Datei konnte nicht gelesen werden. Die bisherigen Daten bleiben erhalten.');
+ reader.onload=()=>{
+  let imported;
+  try{imported=JSON.parse(String(reader.result).replace(/^\uFEFF/,''))}catch(error){alert('Die Datei enthält kein gültiges JSON. Die bisherigen Daten bleiben erhalten.');return}
+  const error=validateBackup(imported);
+  if(error){alert('Sicherung ungültig: '+error+' Die bisherigen Daten bleiben erhalten.');return}
+  if(!confirm(`Sicherung mit ${imported.spieler.length} Spielern und ${imported.abende.length} Kegeltagen laden? Dabei werden alle bisherigen Daten in diesem Browser ersetzt. Sichere sie bei Bedarf vorher.`))return;
+  try{localStorage.setItem('kegel',JSON.stringify(imported))}catch(error){alert('Die Sicherung konnte nicht gespeichert werden. Die bisherigen Daten bleiben erhalten: '+error.message);return}
+  D=imported;selectedPlayers=new Set(D.spieler);render();
+ };
+ reader.readAsText(file);
+};
+function exportCSV(){const A=abendeJahr();let c='Spieler;'+A.map(a=>a.d).join(';')+';Summe;Betrag\n';filteredPlayers().forEach(p=>{const s=A.reduce((t,a)=>t+g(a,p),0);c+=p+';'+A.map(a=>g(a,p)).join(';')+';'+s+';'+(s*D.preis).toFixed(2).replace('.',',')+'\n'});dl('gossen.csv','\ufeff'+c,'text/csv')}
+$('nd').valueAsDate=new Date();render();
+</script></body></html>
